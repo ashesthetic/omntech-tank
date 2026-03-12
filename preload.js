@@ -25,4 +25,8 @@ contextBridge.exposeInMainWorld('tankAPI', {
 	readLog: filename => ipcRenderer.invoke('logs:read', filename),
 	exportCSV: () => ipcRenderer.invoke('logs:export-csv'),
 	openLogsFolder: () => ipcRenderer.invoke('logs:open-folder'),
+
+	// ── Settings ───────────────────────────────────────────────────────────────
+	loadSettings: () => ipcRenderer.invoke('settings:load'),
+	saveSettings: (s) => ipcRenderer.invoke('settings:save', s),
 });

@@ -280,11 +280,10 @@ function readSettingsFromForm() {
 
 function applySettingsToForm(s) {
 	if (!s) return;
-	if (s.path) {
-		// Select the saved port if it's available in the list
-		const opt = document.querySelector(`#portSelect option[value="${CSS.escape(s.path)}"]`);
-		if (opt) document.getElementById('portSelect').value = s.path;
-	}
+
+	// Use setSelectValue (iterates options by .value) instead of querySelector
+	// so port paths like /dev/tty.usbserial-XXX aren't broken by CSS.escape()
+	if (s.path) setSelectValue('portSelect', s.path);
 	if (s.baudRate) setSelectValue('baudSelect', String(s.baudRate));
 	if (s.dataBits) setSelectValue('dataBitsSelect', String(s.dataBits));
 	if (s.stopBits) setSelectValue('stopBitsSelect', String(s.stopBits));
@@ -301,11 +300,8 @@ function applySettingsToForm(s) {
 	if (s.autoConnect !== undefined)
 		document.getElementById('autoConnectCheck').checked = s.autoConnect;
 
-	// Mirror saved port into the quick-connect modal too
-	if (s.path) {
-		const qcOpt = document.querySelector(`#qcPortSelect option[value="${CSS.escape(s.path)}"]`);
-		if (qcOpt) document.getElementById('qcPortSelect').value = s.path;
-	}
+	// Mirror saved port + baud into the quick-connect modal
+	if (s.path) setSelectValue('qcPortSelect', s.path);
 	if (s.baudRate) setSelectValue('qcBaudSelect', String(s.baudRate));
 }
 
