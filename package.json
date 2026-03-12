@@ -1,0 +1,115 @@
+{
+	"name": "tank-data",
+	"version": "1.0.0",
+	"description": "OMNTEC Tank Monitoring System — real-time USB serial data viewer",
+	"main": "main.js",
+	"scripts": {
+		"start": "electron .",
+		"dev": "NODE_ENV=development electron .",
+		"postinstall": "electron-rebuild",
+		"build": "electron-builder --mac --win",
+		"build:mac": "electron-builder --mac",
+		"build:win": "electron-builder --win",
+		"build:linux": "electron-builder --linux"
+	},
+	"keywords": [
+		"omntec",
+		"tank-monitoring",
+		"serial",
+		"electron"
+	],
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"serialport": "^12.0.0"
+	},
+	"devDependencies": {
+		"@electron/rebuild": "^3.6.0",
+		"electron": "^29.4.6",
+		"electron-builder": "^24.13.3"
+	},
+	"build": {
+		"appId": "com.tankdata.monitor",
+		"productName": "Tank Data Monitor",
+		"copyright": "Copyright © 2026",
+		"asar": true,
+		"asarUnpack": [
+			"node_modules/serialport/**",
+			"node_modules/@serialport/**",
+			"node_modules/bindings/**",
+			"node_modules/node-addon-api/**"
+		],
+		"files": [
+			"main.js",
+			"preload.js",
+			"src/**/*",
+			"assets/**/*"
+		],
+		"extraResources": [
+			{
+				"from": "node_modules",
+				"to": "node_modules",
+				"filter": [
+					"serialport/**",
+					"@serialport/**"
+				]
+			}
+		],
+		"mac": {
+			"category": "public.app-category.utilities",
+			"icon": "assets/icon.icns",
+			"hardenedRuntime": true,
+			"gatekeeperAssess": false,
+			"target": [
+				{
+					"target": "dmg",
+					"arch": [
+						"x64",
+						"arm64"
+					]
+				},
+				{
+					"target": "zip",
+					"arch": [
+						"x64",
+						"arm64"
+					]
+				}
+			]
+		},
+		"win": {
+			"icon": "assets/icon.ico",
+			"target": [
+				{
+					"target": "nsis",
+					"arch": [
+						"x64"
+					]
+				},
+				{
+					"target": "portable",
+					"arch": [
+						"x64"
+					]
+				}
+			]
+		},
+		"linux": {
+			"icon": "assets/icon.png",
+			"target": [
+				"AppImage",
+				"deb"
+			]
+		},
+		"nsis": {
+			"oneClick": false,
+			"allowToChangeInstallationDirectory": true,
+			"createDesktopShortcut": true,
+			"createStartMenuShortcut": true
+		},
+		"dmg": {
+			"title": "Tank Data Monitor",
+			"background": "assets/dmg-background.png"
+		}
+	}
+}

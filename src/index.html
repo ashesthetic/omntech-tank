@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta http-equiv="Content-Security-Policy" content="default-src 'self';
+                 script-src 'self' https://cdn.jsdelivr.net;
+                 style-src  'self' 'unsafe-inline' https://fonts.googleapis.com;
+                 font-src   'self' https://fonts.gstatic.com;" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Tank Data Monitor</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+	<link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+	<!-- ══════════════════════════  SIDEBAR  ══════════════════════════════════ -->
+	<aside class="sidebar" id="sidebar">
+		<div class="sidebar-header">
+			<svg class="app-logo" viewBox="0 0 40 40" fill="none">
+				<rect x="8" y="6" width="24" height="28" rx="3" fill="#3b82f6" opacity=".2" stroke="#3b82f6"
+					stroke-width="1.5" />
+				<rect x="8" y="22" width="24" height="12" rx="2" fill="#3b82f6" opacity=".6" />
+				<rect x="16" y="2" width="8" height="5" rx="1.5" fill="#94a3b8" />
+				<line x1="20" y1="6" x2="20" y2="10" stroke="#94a3b8" stroke-width="1.5" />
+			</svg>
+			<span class="app-name">Tank Monitor</span>
+		</div>
+
+		<nav class="nav">
+			<button class="nav-item active" data-view="dashboard">
+				<svg viewBox="0 0 20 20" fill="currentColor">
+					<path
+						d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-3a1 1 0 011 1v2.586l1.707 1.707a1 1 0 01-1.414 1.414l-2-2A1 1 0 019 11V8a1 1 0 011-1z" />
+				</svg>
+				Dashboard
+			</button>
+			<button class="nav-item" data-view="tanks">
+				<svg viewBox="0 0 20 20" fill="currentColor">
+					<path fill-rule="evenodd"
+						d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z"
+						clip-rule="evenodd" />
+				</svg>
+				Tanks
+				<span class="badge" id="tankCountBadge">0</span>
+			</button>
+			<button class="nav-item" data-view="alarms">
+				<svg viewBox="0 0 20 20" fill="currentColor">
+					<path
+						d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zm0 16a2 2 0 01-2-2h4a2 2 0 01-2 2z" />
+				</svg>
+				Alarms
+				<span class="badge alarm-badge hidden" id="alarmCountBadge">0</span>
+			</button>
+			<button class="nav-item" data-view="terminal">
+				<svg viewBox="0 0 20 20" fill="currentColor">
+					<path fill-rule="evenodd"
+						d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 1.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L7.586 10 5.293 7.707a1 1 0 010-1.414zM11 12a1 1 0 100 2h3a1 1 0 100-2h-3z"
+						clip-rule="evenodd" />
+				</svg>
+				Terminal
+			</button>
+			<button class="nav-item" data-view="logs">
+				<svg viewBox="0 0 20 20" fill="currentColor">
+					<path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+					<path fill-rule="evenodd"
+						d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+						clip-rule="evenodd" />
+				</svg>
+				Data Logs
+			</button>
+			<button class="nav-item" data-view="settings">
+				<svg viewBox="0 0 20 20" fill="currentColor">
+					<path fill-rule="evenodd"
+						d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+						clip-rule="evenodd" />
+				</svg>
+				Settings
+			</button>
+		</nav>
+
+		<!-- Connection status panel -->
+		<div class="conn-panel">
+			<div class="conn-status" id="connStatus">
+				<span class="status-dot disconnected" id="statusDot"></span>
+				<span id="statusLabel">Disconnected</span>
+			</div>
+			<div class="conn-port" id="connPortLabel"></div>
+		</div>
+	</aside>
+
+	<!-- ══════════════════════════  MAIN  ════════════════════════════════════ -->
+	<main class="main" id="mainContent">
+
+		<!-- ── HEADER ── -->
+		<header class="topbar">
+			<h1 class="page-title" id="pageTitle">Dashboard</h1>
+			<div class="topbar-right">
+				<span class="clock" id="clock"></span>
+				<button class="btn btn-primary" id="connectBtn">Connect</button>
+			</div>
+		</header>
+
+		<!-- ─────────────────── VIEW: DASHBOARD ─────────────────────────────── -->
+		<section class="view active" id="view-dashboard">
+			<div class="stats-row" id="statsRow">
+				<div class="stat-card">
+					<div class="stat-label">Tanks Online</div>
+					<div class="stat-value" id="stat-tanks">—</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-label">Active Alarms</div>
+					<div class="stat-value alarm-value" id="stat-alarms">—</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-label">Last Update</div>
+					<div class="stat-value" id="stat-time">—</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-label">Poll Interval</div>
+					<div class="stat-value" id="stat-poll">—</div>
+				</div>
+			</div>
+
+			<div class="tank-grid" id="tankGrid">
+				<div class="empty-state">
+					<svg viewBox="0 0 64 64" fill="none">
+						<rect x="16" y="10" width="32" height="42" rx="4" stroke="#475569" stroke-width="2"
+							stroke-dasharray="4 3" />
+						<path d="M26 26l12 12M38 26L26 38" stroke="#475569" stroke-width="2" stroke-linecap="round" />
+					</svg>
+					<p>No tanks detected.<br />Connect to an OMNTEC device to begin monitoring.</p>
+				</div>
+			</div>
+		</section>
+
+		<!-- ─────────────────── VIEW: TANKS ──────────────────────────────────── -->
+		<section class="view" id="view-tanks">
+			<div class="tank-table-wrap">
+				<table class="data-table" id="tankTable">
+					<thead>
+						<tr>
+							<th>#</th>
+							<th>Product</th>
+							<th>Height (in)</th>
+							<th>Water (in)</th>
+							<th>Temp (°F)</th>
+							<th>Volume (L)</th>
+							<th>Ullage (L)</th>
+							<th>Fill %</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+					<tbody id="tankTableBody">
+						<tr>
+							<td colspan="9" class="table-empty">No data — connect to a device</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<!-- ─────────────────── VIEW: ALARMS ─────────────────────────────────── -->
+		<section class="view" id="view-alarms">
+			<div id="alarmList" class="alarm-list">
+				<div class="empty-state">
+					<svg viewBox="0 0 64 64" fill="none">
+						<circle cx="32" cy="32" r="24" stroke="#22c55e" stroke-width="2" />
+						<path d="M22 32l7 7 13-14" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"
+							stroke-linejoin="round" />
+					</svg>
+					<p>No active alarms</p>
+				</div>
+			</div>
+		</section>
+
+		<!-- ─────────────────── VIEW: TERMINAL ───────────────────────────────── -->
+		<section class="view" id="view-terminal">
+			<div class="terminal-toolbar">
+				<label class="terminal-label">Send Command</label>
+				<input type="text" id="cmdInput" class="cmd-input" placeholder="e.g. I00  or  hex: 01 49 30 30 03" />
+				<select id="cmdMode" class="cmd-select">
+					<option value="omntec">OMNTEC</option>
+					<option value="hex">Raw Hex</option>
+				</select>
+				<button class="btn btn-sm" id="cmdSendBtn">Send</button>
+				<button class="btn btn-sm btn-ghost" id="termClearBtn">Clear</button>
+			</div>
+			<div class="terminal" id="terminal">
+				<div class="terminal-line dim">── Terminal ready. Connect to a device to see data ──</div>
+			</div>
+		</section>
+
+		<!-- ─────────────────── VIEW: LOGS ───────────────────────────────────── -->
+		<section class="view" id="view-logs">
+			<div class="logs-toolbar">
+				<select id="logFileSelect" class="cmd-select" style="min-width:200px">
+					<option value="">Select log file…</option>
+				</select>
+				<button class="btn btn-sm" id="loadLogBtn">Load</button>
+				<button class="btn btn-sm" id="exportCsvBtn">Export CSV</button>
+				<button class="btn btn-sm btn-ghost" id="openLogFolderBtn">Open Folder</button>
+			</div>
+			<div class="tank-table-wrap">
+				<table class="data-table" id="logTable">
+					<thead>
+						<tr>
+							<th>Time</th>
+							<th>Tank</th>
+							<th>Level</th>
+							<th>Water</th>
+							<th>Temp</th>
+							<th>Volume</th>
+							<th>Ullage</th>
+							<th>Alarms</th>
+						</tr>
+					</thead>
+					<tbody id="logTableBody">
+						<tr>
+							<td colspan="8" class="table-empty">Select a log file above</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<!-- ─────────────────── VIEW: SETTINGS ───────────────────────────────── -->
+		<section class="view" id="view-settings">
+			<div class="settings-card">
+				<h2 class="settings-title">Serial Connection</h2>
+				<div class="form-grid">
+					<label class="form-label">
+						Port
+						<div class="input-row">
+							<select id="portSelect" class="form-select">
+								<option value="">Select port…</option>
+							</select>
+							<button class="btn btn-sm" id="refreshPortsBtn">↺ Refresh</button>
+						</div>
+					</label>
+
+					<label class="form-label">
+						Baud Rate
+						<select id="baudSelect" class="form-select">
+							<option value="9600" selected>9600</option>
+							<option value="19200">19200</option>
+							<option value="38400">38400</option>
+							<option value="57600">57600</option>
+							<option value="115200">115200</option>
+							<option value="4800">4800</option>
+							<option value="2400">2400</option>
+						</select>
+					</label>
+
+					<label class="form-label">
+						Data Bits
+						<select id="dataBitsSelect" class="form-select">
+							<option value="8" selected>8</option>
+							<option value="7">7</option>
+						</select>
+					</label>
+
+					<label class="form-label">
+						Stop Bits
+						<select id="stopBitsSelect" class="form-select">
+							<option value="1" selected>1</option>
+							<option value="2">2</option>
+						</select>
+					</label>
+
+					<label class="form-label">
+						Parity
+						<select id="paritySelect" class="form-select">
+							<option value="none" selected>None</option>
+							<option value="even">Even</option>
+							<option value="odd">Odd</option>
+						</select>
+					</label>
+
+					<label class="form-label">
+						Parser Mode
+						<select id="parserModeSelect" class="form-select">
+							<option value="readline" selected>Readline / CR+LF (OMNTEC default)</option>
+							<option value="etx">ETX Delimiter (0x03)</option>
+						</select>
+					</label>
+
+					<label class="form-label">
+						Poll Interval (ms)
+						<input type="number" id="pollIntervalInput" class="form-input" value="5000" min="500"
+							max="60000" step="500" />
+					</label>
+
+					<label class="form-label">
+						Units
+						<select id="unitsSelect" class="form-select">
+							<option value="imperial" selected>Imperial (in / gal / °F)</option>
+							<option value="metric">Metric (mm / L / °C)</option>
+						</select>
+					</label>
+				</div>
+
+				<div class="settings-actions">
+					<button class="btn btn-primary btn-lg" id="settingsConnectBtn">Connect</button>
+					<button class="btn btn-danger  btn-lg hidden" id="settingsDisconnectBtn">Disconnect</button>
+				</div>
+			</div>
+		</section>
+
+	</main>
+
+	<!-- ══════════════════════════  CONNECT MODAL  ════════════════════════════ -->
+	<div class="modal-overlay hidden" id="quickConnectModal">
+		<div class="modal">
+			<div class="modal-header">
+				<h3>Quick Connect</h3>
+				<button class="modal-close" id="modalClose">✕</button>
+			</div>
+			<div class="modal-body">
+				<label class="form-label">
+					Port
+					<div class="input-row">
+						<select id="qcPortSelect" class="form-select">
+							<option value="">Select port…</option>
+						</select>
+						<button class="btn btn-sm" id="qcRefreshBtn">↺</button>
+					</div>
+				</label>
+				<label class="form-label">
+					Baud Rate
+					<select id="qcBaudSelect" class="form-select">
+						<option value="9600" selected>9600</option>
+						<option value="19200">19200</option>
+						<option value="38400">38400</option>
+						<option value="115200">115200</option>
+					</select>
+				</label>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-primary" id="qcConnectBtn">Connect</button>
+				<button class="btn btn-ghost" id="qcCancelBtn">Cancel</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- ══════════════════════════  TOAST  ════════════════════════════════════ -->
+	<div class="toast-container" id="toastContainer"></div>
+
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+	<script src="renderer.js"></script>
+</body>
+
+</html>
