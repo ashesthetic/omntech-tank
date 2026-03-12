@@ -14,7 +14,7 @@ let termLines = 0;
 const MAX_TERM = 500;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 	initClock();
 	initNav();
 	initConnectModal();
@@ -22,9 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	initTerminal();
 	initLogs();
 	setupIPCListeners();
-	refreshPorts(document.getElementById('portSelect'));
-	refreshPorts(document.getElementById('qcPortSelect'));
+	await refreshPorts(document.getElementById('portSelect'));
+	await refreshPorts(document.getElementById('qcPortSelect'));
 	syncUnitsFromSelect();
+	await loadAndApplySettings();
 });
 
 // ─── Clock ────────────────────────────────────────────────────────────────────
@@ -233,18 +234,14 @@ function initSettings() {
 		refreshPorts(document.getElementById('portSelect'));
 	});
 
+	document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+
 	document.getElementById('settingsConnectBtn').addEventListener('click', async () => {
 		const port = document.getElementById('portSelect').value;
 		if (!port) { showToast('Please select a port', 'error'); return; }
-		await doConnect({
-			path: port,
-			baudRate: parseInt(document.getElementById('baudSelect').value, 10),
-			dataBits: parseInt(document.getElementById('dataBitsSelect').value, 10),
-			stopBits: parseInt(document.getElementById('stopBitsSelect').value, 10),
-			parity: document.getElementById('paritySelect').value,
-			parserMode: document.getElementById('parserModeSelect').value,
-			pollInterval: parseInt(document.getElementById('pollIntervalInput').value, 10),
-		});
+		const cfg = readSettingsFromForm();
+		await saveSettings();
+		await doConnect(cfg);
 	});
 
 	document.getElementById('settingsDisconnectBtn').addEventListener('click', doDisconnect);
@@ -264,6 +261,75 @@ function initSettings() {
 
 function syncUnitsFromSelect() {
 	units = document.getElementById('unitsSelect').value;
+}
+
+// ─── Persistent Settings ──────────────────────────────────────────────────
+function readSettingsFromForm() {
+	return {
+		path: document.getElementById('portSelect').value,
+		baudRate: parseInt(document.getElementById('baudSelect').value, 10),
+		dataBits: parseInt(document.getElementById('dataBitsSelect').value, 10),
+		stopBits: parseInt(document.getElementById('stopBitsSelect').value, 10),
+		parity: document.getElementById('paritySelect').value,
+		parserMode: document.getElementById('parserModeSelect').value,
+		pollInterval: parseInt(document.getElementById('pollIntervalInput').value, 10),
+		units: document.getElementById('unitsSelect').value,
+		autoConnect: document.getElementById('autoConnectCheck').checked,
+	};
+}
+
+function applySettingsToForm(s) {
+	if (!s) return;
+	if (s.path) {
+		// Select the saved port if it's available in the list
+		const opt = document.querySelector(`#portSelect option[value="${CSS.escape(s.path)}"]`);
+		if (opt) document.getElementById('portSelect').value = s.path;
+	}
+	if (s.baudRate) setSelectValue('baudSelect', String(s.baudRate));
+	if (s.dataBits) setSelectValue('dataBitsSelect', String(s.dataBits));
+	if (s.stopBits) setSelectValue('stopBitsSelect', String(s.stopBits));
+	if (s.parity) setSelectValue('paritySelect', s.parity);
+	if (s.parserMode) setSelectValue('parserModeSelect', s.parserMode);
+	if (s.pollInterval) {
+		document.getElementById('pollIntervalInput').value = s.pollInterval;
+		document.getElementById('stat-poll').textContent = (s.pollInterval / 1000).toFixed(1) + ' s';
+	}
+	if (s.units) {
+		setSelectValue('unitsSelect', s.units);
+		units = s.units;
+	}
+	if (s.autoConnect !== undefined)
+		document.getElementById('autoConnectCheck').checked = s.autoConnect;
+
+	// Mirror saved port into the quick-connect modal too
+	if (s.path) {
+		const qcOpt = document.querySelector(`#qcPortSelect option[value="${CSS.escape(s.path)}"]`);
+		if (qcOpt) document.getElementById('qcPortSelect').value = s.path;
+	}
+	if (s.baudRate) setSelectValue('qcBaudSelect', String(s.baudRate));
+}
+
+function setSelectValue(id, value) {
+	const el = document.getElementById(id);
+	if (el && [...el.options].some(o => o.value === value)) el.value = value;
+}
+
+async function loadAndApplySettings() {
+	const res = await api.loadSettings();
+	if (res.success && res.settings) {
+		applySettingsToForm(res.settings);
+		if (res.settings.autoConnect && res.settings.path) {
+			showToast(`Auto-connecting to ${res.settings.path}…`, 'info');
+			await doConnect(res.settings);
+		}
+	}
+}
+
+async function saveSettings() {
+	const s = readSettingsFromForm();
+	const res = await api.saveSettings(s);
+	if (res.success) showToast('Settings saved', 'success');
+	else showToast('Failed to save settings: ' + res.error, 'error');
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

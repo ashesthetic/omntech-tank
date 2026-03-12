@@ -773,6 +773,25 @@ body {
 .settings-actions {
 	display: flex;
 	gap: 12px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.auto-connect-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--text-sec);
+	cursor: pointer;
+	margin-left: 4px;
+}
+.auto-connect-label input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	accent-color: var(--blue);
+	cursor: pointer;
 }
 
 /* ── Modal ──────────────────────────────────────────────────────────────── */

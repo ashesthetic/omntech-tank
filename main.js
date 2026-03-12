@@ -27,6 +27,7 @@ let reportLineBuffer = [];
 let reportFlushTimer = null;
 
 const LOG_DIR = path.join(app.getPath('userData'), 'logs');
+const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function ensureLogDir() {
@@ -294,6 +295,27 @@ ipcMain.handle('logs:export-csv', async () => {
 ipcMain.handle('logs:open-folder', () => {
 	shell.openPath(LOG_DIR);
 	return { success: true };
+});
+
+// ─── IPC: settings ──────────────────────────────────────────────────
+ipcMain.handle('settings:load', () => {
+	try {
+		if (fs.existsSync(SETTINGS_FILE)) {
+			return { success: true, settings: JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')) };
+		}
+		return { success: true, settings: null };
+	} catch (err) {
+		return { success: false, error: err.message };
+	}
+});
+
+ipcMain.handle('settings:save', (_ev, settings) => {
+	try {
+		fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+		return { success: true };
+	} catch (err) {
+		return { success: false, error: err.message };
+	}
 });
 
 // ─── Incoming data handler ────────────────────────────────────────────────────
