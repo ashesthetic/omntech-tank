@@ -714,6 +714,21 @@ body {
 	color: var(--text-pri);
 }
 
+.settings-subtitle {
+	font-size: 13px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+	color: var(--text-sec);
+	margin: 4px 0 6px;
+}
+
+.settings-hint {
+	font-size: 12px;
+	color: var(--text-muted, #64748b);
+	margin: 0 0 16px;
+}
+
 .form-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -793,6 +808,20 @@ body {
 	height: 16px;
 	accent-color: var(--blue);
 	cursor: pointer;
+}
+
+.push-status-text {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--text-sec);
+}
+
+.push-status-text.push-ok {
+	color: #22c55e;
+}
+
+.push-status-text.push-err {
+	color: #ef4444;
 }
 
 /* ── Modal ──────────────────────────────────────────────────────────────── */

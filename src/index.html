@@ -313,6 +313,68 @@
 					</label>
 				</div>
 			</div>
+
+			<!-- Data Push settings card -->
+			<div class="settings-card">
+				<h2 class="settings-title">Data Push</h2>
+				<div class="form-grid">
+					<label class="form-label" style="grid-column: 1 / -1">
+						Server URL
+						<input type="url" id="pushUrlInput" class="form-input"
+							placeholder="https://example.com/api/tank-data" />
+					</label>
+					<label class="form-label">
+						Email
+						<input type="email" id="pushEmailInput" class="form-input" placeholder="system@example.com"
+							autocomplete="off" />
+					</label>
+					<label class="form-label">
+						Password
+						<input type="password" id="pushPasswordInput" class="form-input" placeholder="••••••••"
+							autocomplete="off" />
+					</label>
+					<label class="form-label">
+						Push Interval
+						<select id="pushIntervalSelect" class="form-select">
+							<option value="5">Every 5 minutes</option>
+							<option value="10">Every 10 minutes</option>
+							<option value="15">Every 15 minutes</option>
+							<option value="30" selected>Every 30 minutes</option>
+							<option value="60">Every 60 minutes</option>
+							<option value="120">Every 2 hours</option>
+						</select>
+					</label>
+					<label class="auto-connect-label form-label" style="align-self: end; padding-bottom: 6px">
+						<input type="checkbox" id="pushEnabledCheck" />
+						Enable scheduled push
+					</label>
+				</div>
+
+				<h3 class="settings-subtitle">Tank Assignment</h3>
+				<p class="settings-hint">Enter the Tank # that corresponds to each product type.</p>
+				<div class="form-grid">
+					<label class="form-label">
+						Regular — Tank #
+						<input type="number" id="pushRegularTankId" class="form-input" min="1" max="16"
+							placeholder="e.g. 1" />
+					</label>
+					<label class="form-label">
+						Premium — Tank #
+						<input type="number" id="pushPremiumTankId" class="form-input" min="1" max="16"
+							placeholder="e.g. 2" />
+					</label>
+					<label class="form-label">
+						Diesel — Tank #
+						<input type="number" id="pushDieselTankId" class="form-input" min="1" max="16"
+							placeholder="e.g. 3" />
+					</label>
+				</div>
+
+				<div class="settings-actions">
+					<button class="btn btn-primary" id="testPushBtn">Send Now</button>
+					<span class="push-status-text" id="pushStatusText"></span>
+				</div>
+			</div>
 		</section>
 
 	</main>

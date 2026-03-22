@@ -29,4 +29,8 @@ contextBridge.exposeInMainWorld('tankAPI', {
 	// ── Settings ───────────────────────────────────────────────────────────────
 	loadSettings: () => ipcRenderer.invoke('settings:load'),
 	saveSettings: (s) => ipcRenderer.invoke('settings:save', s),
+
+	// ── Data Push ──────────────────────────────────────────────────────────────
+	testPush: (url, email, password) => ipcRenderer.invoke('push:test', { url, email, password }),
+	onPushStatus: cb => ipcRenderer.on('push:status', (_e, v) => cb(v)),
 });

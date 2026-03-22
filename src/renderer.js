@@ -68,6 +68,7 @@ function setupIPCListeners() {
 	api.onOMNTECData(handleOMNTECData);
 	api.onSerialError(handleSerialError);
 	api.onDisconnected(handleDisconnected);
+	api.onPushStatus(handlePushStatus);
 }
 
 function handleRawData(data) {
@@ -111,6 +112,18 @@ function handleDisconnected() {
 	connected = false;
 	setConnectionUI(false);
 	showToast('Device disconnected', 'info');
+}
+
+function handlePushStatus({ ok, status, timestamp, error }) {
+	const el = document.getElementById('pushStatusText');
+	if (!el) return;
+	if (ok) {
+		el.textContent = `✓ Sent OK (HTTP ${status}) at ${shortTime(timestamp)}`;
+		el.className = 'push-status-text push-ok';
+	} else {
+		el.textContent = `✗ Failed: ${error || `HTTP ${status}`} at ${shortTime(timestamp)}`;
+		el.className = 'push-status-text push-err';
+	}
 }
 
 // ─── Connection ───────────────────────────────────────────────────────────────
@@ -257,6 +270,18 @@ function initSettings() {
 		const ms = parseInt(e.target.value, 10);
 		if (ms >= 500) document.getElementById('stat-poll').textContent = (ms / 1000).toFixed(1) + ' s';
 	});
+
+	document.getElementById('testPushBtn').addEventListener('click', async () => {
+		const url = document.getElementById('pushUrlInput').value.trim();
+		const email = document.getElementById('pushEmailInput').value.trim();
+		const password = document.getElementById('pushPasswordInput').value;
+		if (!url) { showToast('Enter a server URL first', 'error'); return; }
+		if (!email || !password) { showToast('Enter email and password first', 'error'); return; }
+		const el = document.getElementById('pushStatusText');
+		el.textContent = 'Sending…';
+		el.className = 'push-status-text';
+		await api.testPush(url, email, password);
+	});
 }
 
 function syncUnitsFromSelect() {
@@ -275,6 +300,14 @@ function readSettingsFromForm() {
 		pollInterval: parseInt(document.getElementById('pollIntervalInput').value, 10),
 		units: document.getElementById('unitsSelect').value,
 		autoConnect: document.getElementById('autoConnectCheck').checked,
+		pushEnabled: document.getElementById('pushEnabledCheck').checked,
+		pushUrl: document.getElementById('pushUrlInput').value.trim(),
+		pushInterval: parseInt(document.getElementById('pushIntervalSelect').value, 10),
+		pushEmail: document.getElementById('pushEmailInput').value.trim(),
+		pushPassword: document.getElementById('pushPasswordInput').value,
+		pushRegularTankId: document.getElementById('pushRegularTankId').value || null,
+		pushPremiumTankId: document.getElementById('pushPremiumTankId').value || null,
+		pushDieselTankId: document.getElementById('pushDieselTankId').value || null,
 	};
 }
 
@@ -299,6 +332,16 @@ function applySettingsToForm(s) {
 	}
 	if (s.autoConnect !== undefined)
 		document.getElementById('autoConnectCheck').checked = s.autoConnect;
+
+	// Push settings
+	if (s.pushUrl !== undefined) document.getElementById('pushUrlInput').value = s.pushUrl || '';
+	if (s.pushInterval) setSelectValue('pushIntervalSelect', String(s.pushInterval));
+	if (s.pushEnabled !== undefined) document.getElementById('pushEnabledCheck').checked = s.pushEnabled;
+	if (s.pushEmail !== undefined) document.getElementById('pushEmailInput').value = s.pushEmail || '';
+	if (s.pushPassword !== undefined) document.getElementById('pushPasswordInput').value = s.pushPassword || '';
+	if (s.pushRegularTankId != null) document.getElementById('pushRegularTankId').value = s.pushRegularTankId;
+	if (s.pushPremiumTankId != null) document.getElementById('pushPremiumTankId').value = s.pushPremiumTankId;
+	if (s.pushDieselTankId != null) document.getElementById('pushDieselTankId').value = s.pushDieselTankId;
 
 	// Mirror saved port + baud into the quick-connect modal
 	if (s.path) setSelectValue('qcPortSelect', s.path);

@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { Transform } = require('stream');
@@ -21,6 +21,10 @@ let activePort = null;
 let activeParser = null;
 let pollTimer = null;
 let pollCommand = null;
+let pushTimer = null;
+let lastInventoryData = null;
+let cachedToken = null;
+let pushTankMap = { regular: null, premium: null, diesel: null };
 
 // Line accumulator — collects CRLF lines until the device goes quiet
 let reportLineBuffer = [];
@@ -70,6 +74,7 @@ app.whenReady().then(() => { ensureLogDir(); createWindow(); });
 
 app.on('window-all-closed', () => {
 	stopPolling();
+	stopPushTimer();
 	closePort();
 	if (process.platform !== 'darwin') app.quit();
 });
@@ -301,7 +306,21 @@ ipcMain.handle('logs:open-folder', () => {
 ipcMain.handle('settings:load', () => {
 	try {
 		if (fs.existsSync(SETTINGS_FILE)) {
-			return { success: true, settings: JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')) };
+			const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+			pushTankMap = {
+				regular: settings.pushRegularTankId || null,
+				premium: settings.pushPremiumTankId || null,
+				diesel: settings.pushDieselTankId || null,
+			};
+			if (settings.pushEnabled && settings.pushUrl) {
+				startPushTimer(
+					settings.pushUrl,
+					(settings.pushInterval || 30) * 60 * 1000,
+					settings.pushEmail || '',
+					settings.pushPassword || ''
+				);
+			}
+			return { success: true, settings };
 		}
 		return { success: true, settings: null };
 	} catch (err) {
@@ -312,10 +331,136 @@ ipcMain.handle('settings:load', () => {
 ipcMain.handle('settings:save', (_ev, settings) => {
 	try {
 		fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+		cachedToken = null; // reset so next push re-authenticates with new credentials
+		pushTankMap = {
+			regular: settings.pushRegularTankId || null,
+			premium: settings.pushPremiumTankId || null,
+			diesel: settings.pushDieselTankId || null,
+		};
+		if (settings.pushEnabled && settings.pushUrl) {
+			startPushTimer(
+				settings.pushUrl,
+				(settings.pushInterval || 30) * 60 * 1000,
+				settings.pushEmail || '',
+				settings.pushPassword || ''
+			);
+		} else {
+			stopPushTimer();
+		}
 		return { success: true };
 	} catch (err) {
 		return { success: false, error: err.message };
 	}
+});
+
+// ─── Data Push ────────────────────────────────────────────────────────────────
+function stopPushTimer() {
+	if (pushTimer) { clearInterval(pushTimer); pushTimer = null; }
+}
+
+function startPushTimer(url, intervalMs, email, password) {
+	stopPushTimer();
+	pushTimer = setInterval(() => executePush(url, email, password), intervalMs);
+}
+
+function buildPushPayload() {
+	const payload = {
+		datetime: new Date().toISOString(),
+		regular_volume: null, regular_height: null, regular_ullage: null,
+		regular_water: null, regular_temp: null, regular_fill: null, regular_status: null,
+		premium_volume: null, premium_height: null, premium_ullage: null,
+		premium_water: null, premium_temp: null, premium_fill: null, premium_status: null,
+		diesel_volume: null, diesel_height: null, diesel_ullage: null,
+		diesel_water: null, diesel_temp: null, diesel_fill: null, diesel_status: null,
+	};
+
+	if (!lastInventoryData) return payload;
+
+	const prefixes = ['regular', 'premium', 'diesel'];
+	for (const prefix of prefixes) {
+		const tankId = pushTankMap[prefix];
+		if (!tankId) continue;
+		const t = lastInventoryData.tanks.find(t => String(t.id) === String(tankId));
+		if (!t) continue;
+
+		const total = (t.volume || 0) + (t.ullage || 0);
+		const fill = total > 0 ? Math.round((t.volume / total) * 100) : null;
+		const alarms = (t.activeAlarms && t.activeAlarms.length > 0)
+			? t.activeAlarms.join(', ')
+			: 'Normal';
+
+		payload[`${prefix}_volume`] = t.volume ?? null;
+		payload[`${prefix}_height`] = t.level ?? null;
+		payload[`${prefix}_ullage`] = t.ullage ?? null;
+		payload[`${prefix}_water`] = t.waterLevel ?? null;
+		payload[`${prefix}_temp`] = t.temperature ?? null;
+		payload[`${prefix}_fill`] = fill;
+		payload[`${prefix}_status`] = alarms;
+	}
+
+	return payload;
+}
+
+async function acquireToken(pushUrl, email, password) {
+	const base = new URL(pushUrl).origin;
+	const res = await net.fetch(`${base}/api/login`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+		body: JSON.stringify({ email, password }),
+	});
+	if (!res.ok) throw new Error(`Auth failed: HTTP ${res.status}`);
+	const data = await res.json();
+	const token = data.token || data.access_token;
+	if (!token) throw new Error('No token in auth response');
+	return token;
+}
+
+async function executePush(url, email, password) {
+	const payload = buildPushPayload();
+	try {
+		// Acquire token on first call or after expiry
+		if (!cachedToken) {
+			cachedToken = await acquireToken(url, email, password);
+		}
+
+		const doRequest = () => net.fetch(url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json',
+				'Authorization': `Bearer ${cachedToken}`,
+			},
+			body: JSON.stringify(payload),
+		});
+
+		let res = await doRequest();
+
+		// Token may have expired — re-authenticate once and retry
+		if (res.status === 401) {
+			cachedToken = await acquireToken(url, email, password);
+			res = await doRequest();
+		}
+
+		send('push:status', {
+			ok: res.ok,
+			status: res.status,
+			timestamp: new Date().toISOString(),
+			error: null,
+		});
+	} catch (err) {
+		cachedToken = null; // force re-auth on next attempt
+		send('push:status', {
+			ok: false,
+			status: null,
+			timestamp: new Date().toISOString(),
+			error: err.message,
+		});
+	}
+}
+
+ipcMain.handle('push:test', async (_ev, { url, email, password }) => {
+	await executePush(url, email, password);
+	return { success: true };
 });
 
 // ─── Incoming data handler ────────────────────────────────────────────────────
@@ -344,6 +489,7 @@ function flushReportBuffer() {
 		if (parsed) {
 			send('omntec:data', parsed);
 			appendLog(parsed);
+			if (parsed.type === 'inventory') lastInventoryData = parsed;
 		}
 	} catch (e) {
 		console.error('OMNTEC parse error:', e.message);
