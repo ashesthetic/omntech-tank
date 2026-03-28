@@ -364,8 +364,10 @@ function startPushTimer(url, intervalMs, email, password) {
 }
 
 function buildPushPayload() {
+	const now = new Date();
+	const datetime = now.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
 	const payload = {
-		datetime: new Date().toISOString(),
+		datetime,
 		regular_volume: null, regular_height: null, regular_ullage: null,
 		regular_water: null, regular_temp: null, regular_fill: null, regular_status: null,
 		premium_volume: null, premium_height: null, premium_ullage: null,
@@ -526,9 +528,10 @@ function parseFormattedReport(lines) {
 
 		if (!headerFound) continue;
 
-		// Tank data row: id + product name (lazy) + 6 numeric values separated by spaces
+		// Tank data row: id + product name (lazy) + 6 numeric values separated by spaces.
+		// Use [-\d.]+ for all numeric fields to handle negative temperatures and signed values.
 		const match = line.match(
-			/^(\d{1,2})\s+(.*?)\s{2,}([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*$/
+			/^(\d{1,2})\s+(.*?)\s{2,}([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s*$/
 		);
 		if (!match) continue;
 
