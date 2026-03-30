@@ -283,7 +283,7 @@ ipcMain.handle('logs:export-csv', async () => {
 				for (const t of (entry.tanks || [])) {
 					rows.push([
 						entry.timestamp, t.id, t.level, t.waterLevel,
-						t.temperature, t.volume, t.ullage,
+						t.temperature, t.tcVolume ?? t.volume, t.ullage,
 						JSON.stringify(t.alarms).replace(/,/g, ';'),
 					].join(','));
 				}
@@ -385,13 +385,14 @@ function buildPushPayload() {
 		const t = lastInventoryData.tanks.find(t => String(t.id) === String(tankId));
 		if (!t) continue;
 
-		const total = (t.volume || 0) + (t.ullage || 0);
-		const fill = total > 0 ? Math.round((t.volume / total) * 100) : null;
+		const vol = t.tcVolume ?? t.volume;
+		const total = (vol || 0) + (t.ullage || 0);
+		const fill = total > 0 ? Math.round((vol / total) * 100) : null;
 		const alarms = (t.activeAlarms && t.activeAlarms.length > 0)
 			? t.activeAlarms.join(', ')
 			: 'Normal';
 
-		payload[`${prefix}_volume`] = t.volume ?? null;
+		payload[`${prefix}_volume`] = t.tcVolume ?? t.volume ?? null;
 		payload[`${prefix}_height`] = t.level ?? null;
 		payload[`${prefix}_ullage`] = t.ullage ?? null;
 		payload[`${prefix}_water`] = t.waterLevel ?? null;

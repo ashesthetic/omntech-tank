@@ -399,7 +399,7 @@ function buildTankCard(t) {
 	const dispLevel = cvtLevel(t.level);
 	const dispWater = cvtLevel(t.waterLevel);
 	const dispTemp = cvtTemp(t.temperature);
-	const dispVol = cvtVolume(t.volume);
+	const dispVol = cvtVolume(t.tcVolume ?? t.volume);
 	const dispUllage = cvtVolume(t.ullage);
 
 	const gaugeColor = hasAlarm ? '#ef4444' : fillColor(fillPct);
@@ -481,7 +481,7 @@ function renderTankTable() {
       <td>${cvtLevel(t.level).val}</td>
       <td>${cvtLevel(t.waterLevel).val}</td>
       <td>${cvtTemp(t.temperature).val}</td>
-      <td>${cvtVolume(t.volume).val}</td>
+      <td>${cvtVolume(t.tcVolume ?? t.volume).val}</td>
       <td>${cvtVolume(t.ullage).val}</td>
       <td class="fill-bar-cell">
         <div class="fill-bar-wrap">
@@ -636,7 +636,7 @@ async function loadSelectedLog() {
         <td>${cvtLevel(t.level).val}</td>
         <td>${cvtLevel(t.waterLevel).val}</td>
         <td>${cvtTemp(t.temperature).val}</td>
-        <td>${cvtVolume(t.volume).val}</td>
+        <td>${cvtVolume(t.tcVolume ?? t.volume).val}</td>
         <td>${cvtVolume(t.ullage).val}</td>
         <td>${(t.activeAlarms || []).join(', ') || '—'}</td>
       </tr>`);
@@ -664,9 +664,10 @@ function cvtTemp(f) {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function calcFillPct(t) {
-	const total = (t.volume || 0) + (t.ullage || 0);
+	const vol = t.tcVolume ?? t.volume;
+	const total = (vol || 0) + (t.ullage || 0);
 	if (total <= 0) return 0;
-	return Math.min(100, Math.round((t.volume / total) * 100));
+	return Math.min(100, Math.round((vol / total) * 100));
 }
 
 function fillColor(pct) {
